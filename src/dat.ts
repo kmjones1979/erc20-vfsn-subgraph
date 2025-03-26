@@ -40,8 +40,8 @@ function getOrCreateToken(address: Address): Token {
     let token = Token.load(address.toHexString());
     if (token === null) {
         token = new Token(address.toHexString());
-        token.name = "DAT Token";
-        token.symbol = "DAT";
+        token.name = "vFusion";
+        token.symbol = "VFSN";
         token.decimals = 18;
         token.currentHolderCount = ZERO_BI;
         token.cumulativeHolderCount = ZERO_BI;
