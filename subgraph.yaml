@@ -1,56 +1,50 @@
 specVersion: 1.2.0
 indexerHints:
-  prune: auto
+    prune: auto
 schema:
-  file: ./schema.graphql
+    file: ./schema.graphql
 dataSources:
-  - kind: ethereum
-    name: DAT
-    network: vana
-    source:
-      address: "0x0CC1Bc0131DD9782e65ca0319Cd3a60eBA3a932d"
-      abi: DAT
-      startBlock: 0
-    mapping:
-      kind: ethereum/events
-      apiVersion: 0.0.9
-      language: wasm/assemblyscript
-      entities:
-        - AddressBlocked
-        - AddressUnblocked
-        - AdminChanged
-        - Approval
-        - DelegateChanged
-        - DelegateVotesChanged
-        - EIP712DomainChanged
-        - MintBlocked
-        - OwnershipTransferStarted
-        - OwnershipTransferred
-        - Transfer
-      abis:
-        - name: DAT
-          file: ./abis/DAT.json
-      eventHandlers:
-        - event: AddressBlocked(indexed address)
-          handler: handleAddressBlocked
-        - event: AddressUnblocked(indexed address)
-          handler: handleAddressUnblocked
-        - event: AdminChanged(indexed address,indexed address)
-          handler: handleAdminChanged
-        - event: Approval(indexed address,indexed address,uint256)
-          handler: handleApproval
-        - event: DelegateChanged(indexed address,indexed address,indexed address)
-          handler: handleDelegateChanged
-        - event: DelegateVotesChanged(indexed address,uint256,uint256)
-          handler: handleDelegateVotesChanged
-        - event: EIP712DomainChanged()
-          handler: handleEIP712DomainChanged
-        - event: MintBlocked()
-          handler: handleMintBlocked
-        - event: OwnershipTransferStarted(indexed address,indexed address)
-          handler: handleOwnershipTransferStarted
-        - event: OwnershipTransferred(indexed address,indexed address)
-          handler: handleOwnershipTransferred
-        - event: Transfer(indexed address,indexed address,uint256)
-          handler: handleTransfer
-      file: ./src/dat.ts
+    - kind: ethereum
+      name: DAT
+      network: vana
+      source:
+          address: "0x0CC1Bc0131DD9782e65ca0319Cd3a60eBA3a932d"
+          abi: DAT
+          startBlock: 0
+      mapping:
+          kind: ethereum/events
+          apiVersion: 0.0.9
+          language: wasm/assemblyscript
+          entities:
+              - Token
+              - TokenDailySnapshot
+              - Account
+              - AccountBalance
+              - TransferEvent
+          abis:
+              - name: DAT
+                file: ./abis/DAT.json
+          eventHandlers:
+              - event: Transfer(indexed address,indexed address,uint256)
+                handler: handleTransfer
+              - event: Approval(indexed address,indexed address,uint256)
+                handler: handleApproval
+              - event: DelegateChanged(indexed address,indexed address,indexed address)
+                handler: handleDelegateChanged
+              - event: DelegateVotesChanged(indexed address,uint256,uint256)
+                handler: handleDelegateVotesChanged
+              - event: AdminChanged(indexed address,indexed address)
+                handler: handleAdminChanged
+              - event: EIP712DomainChanged()
+                handler: handleEIP712DomainChanged
+              - event: MintBlocked()
+                handler: handleMintBlocked
+              - event: AddressBlocked(indexed address)
+                handler: handleAddressBlocked
+              - event: AddressUnblocked(indexed address)
+                handler: handleAddressUnblocked
+              - event: OwnershipTransferStarted(indexed address,indexed address)
+                handler: handleOwnershipTransferStarted
+              - event: OwnershipTransferred(indexed address,indexed address)
+                handler: handleOwnershipTransferred
+          file: ./src/dat.ts
