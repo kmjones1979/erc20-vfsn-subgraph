@@ -24,7 +24,7 @@ The schema is organized into four main sections:
 ```graphql
 type Token @entity {
     id: ID! # Contract address
-    name: String! # Token name (vFusion)
+    name: String! # Token name (dFusion)
     symbol: String! # Token symbol (VFSN)
     decimals: Int! # Token decimals
     currentHolderCount: BigInt! # Current unique holders
@@ -113,7 +113,7 @@ function getOrCreateToken(address: Address): Token {
     let token = Token.load(address.toHexString());
     if (token === null) {
         token = new Token(address.toHexString());
-        token.name = "vFusion";
+        token.name = "dFusion";
         token.symbol = "VFSN";
         token.decimals = 18;
         token.currentHolderCount = ZERO_BI;

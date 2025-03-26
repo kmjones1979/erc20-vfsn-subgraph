@@ -40,7 +40,7 @@ function getOrCreateToken(address: Address): Token {
     let token = Token.load(address.toHexString());
     if (token === null) {
         token = new Token(address.toHexString());
-        token.name = "vFusion";
+        token.name = "dFusion";
         token.symbol = "VFSN";
         token.decimals = 18;
         token.currentHolderCount = ZERO_BI;
