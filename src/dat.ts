@@ -69,7 +69,8 @@ function getOrCreateAccountBalance(
     account: Account,
     token: Token
 ): AccountBalance {
-    let balanceId = account.id.concat(Bytes.fromUTF8("-")).concat(token.id);
+    // Create a unique ID by concatenating account and token addresses
+    let balanceId = account.id.concat(token.id);
     let balance = AccountBalance.load(balanceId);
     if (balance === null) {
         balance = new AccountBalance(balanceId);
@@ -91,9 +92,8 @@ function updateDailySnapshot(
     transferAmount: BigInt
 ): void {
     let dayID = timestamp.toI32() / 86400;
-    let snapshotId = Bytes.fromUTF8(
-        token.id.toHexString() + "-" + dayID.toString()
-    );
+    // Create a unique ID by concatenating token address and day ID
+    let snapshotId = token.id.concat(Bytes.fromI32(dayID));
     let snapshot = TokenDailySnapshot.load(snapshotId);
 
     // Always create a new snapshot if it doesn't exist
