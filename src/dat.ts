@@ -37,9 +37,9 @@ const ONE_BI = BigInt.fromI32(1);
 
 // Helper function to get or create token
 function getOrCreateToken(address: Address): Token {
-    let token = Token.load(address.toHexString());
+    let token = Token.load(address);
     if (token === null) {
-        token = new Token(address.toHexString());
+        token = new Token(address);
         token.name = "dFusion";
         token.symbol = "VFSN";
         token.decimals = 18;
@@ -57,9 +57,9 @@ function getOrCreateToken(address: Address): Token {
 
 // Helper function to get or create account
 function getOrCreateAccount(address: Address): Account {
-    let account = Account.load(address.toHexString());
+    let account = Account.load(address);
     if (account === null) {
-        account = new Account(address.toHexString());
+        account = new Account(address);
     }
     return account;
 }
@@ -69,7 +69,9 @@ function getOrCreateAccountBalance(
     account: Account,
     token: Token
 ): AccountBalance {
-    let balanceId = account.id + "-" + token.id;
+    let balanceId = Bytes.fromUTF8(
+        account.id.toHexString() + "-" + token.id.toHexString()
+    );
     let balance = AccountBalance.load(balanceId);
     if (balance === null) {
         balance = new AccountBalance(balanceId);
@@ -85,16 +87,28 @@ function getOrCreateAccountBalance(
 function updateDailySnapshot(
     token: Token,
     blockNumber: BigInt,
-    timestamp: BigInt
+    timestamp: BigInt,
+    isMint: boolean,
+    isBurn: boolean,
+    transferAmount: BigInt
 ): void {
     let dayID = timestamp.toI32() / 86400;
-    let snapshot = TokenDailySnapshot.load(token.id + "-" + dayID.toString());
+    let snapshotId = Bytes.fromUTF8(
+        token.id.toHexString() + "-" + dayID.toString()
+    );
+    let snapshot = TokenDailySnapshot.load(snapshotId);
+
+    // Capture current values before any updates
+    let currentTotalSupply = token.totalSupply;
+    let currentHolderCount = token.currentHolderCount;
+    let currentCumulativeHolderCount = token.cumulativeHolderCount;
+
     if (snapshot === null) {
-        snapshot = new TokenDailySnapshot(token.id + "-" + dayID.toString());
+        snapshot = new TokenDailySnapshot(snapshotId);
         snapshot.token = token.id;
-        snapshot.dailyTotalSupply = token.totalSupply;
-        snapshot.currentHolderCount = token.currentHolderCount;
-        snapshot.cumulativeHolderCount = token.cumulativeHolderCount;
+        snapshot.dailyTotalSupply = currentTotalSupply;
+        snapshot.currentHolderCount = currentHolderCount;
+        snapshot.cumulativeHolderCount = currentCumulativeHolderCount;
         snapshot.dailyEventCount = 0;
         snapshot.dailyTransferCount = 0;
         snapshot.dailyTransferAmount = ZERO_BI;
@@ -103,6 +117,29 @@ function updateDailySnapshot(
         snapshot.dailyBurnCount = 0;
         snapshot.dailyBurnAmount = ZERO_BI;
     }
+
+    // Update daily counts and amounts
+    snapshot.dailyEventCount += 1;
+    snapshot.dailyTransferCount += 1;
+    snapshot.dailyTransferAmount =
+        snapshot.dailyTransferAmount.plus(transferAmount);
+
+    if (isMint) {
+        snapshot.dailyMintCount += 1;
+        snapshot.dailyMintAmount =
+            snapshot.dailyMintAmount.plus(transferAmount);
+    }
+    if (isBurn) {
+        snapshot.dailyBurnCount += 1;
+        snapshot.dailyBurnAmount =
+            snapshot.dailyBurnAmount.plus(transferAmount);
+    }
+
+    // Update current values with captured values
+    snapshot.dailyTotalSupply = currentTotalSupply;
+    snapshot.currentHolderCount = currentHolderCount;
+    snapshot.cumulativeHolderCount = currentCumulativeHolderCount;
+
     snapshot.blockNumber = blockNumber;
     snapshot.timestamp = timestamp;
     snapshot.save();
@@ -113,11 +150,9 @@ export function handleAddressBlocked(event: AddressBlockedEvent): void {
         event.transaction.hash.concatI32(event.logIndex.toI32())
     );
     entity.blockedAddress = event.params.blockedAddress;
-
     entity.blockNumber = event.block.number;
     entity.blockTimestamp = event.block.timestamp;
     entity.transactionHash = event.transaction.hash;
-
     entity.save();
 }
 
@@ -126,11 +161,9 @@ export function handleAddressUnblocked(event: AddressUnblockedEvent): void {
         event.transaction.hash.concatI32(event.logIndex.toI32())
     );
     entity.unblockedAddress = event.params.unblockedAddress;
-
     entity.blockNumber = event.block.number;
     entity.blockTimestamp = event.block.timestamp;
     entity.transactionHash = event.transaction.hash;
-
     entity.save();
 }
 
@@ -140,11 +173,9 @@ export function handleAdminChanged(event: AdminChangedEvent): void {
     );
     entity.oldAdmin = event.params.oldAdmin;
     entity.newAdmin = event.params.newAdmin;
-
     entity.blockNumber = event.block.number;
     entity.blockTimestamp = event.block.timestamp;
     entity.transactionHash = event.transaction.hash;
-
     entity.save();
 }
 
@@ -155,11 +186,9 @@ export function handleApproval(event: ApprovalEvent): void {
     entity.owner = event.params.owner;
     entity.spender = event.params.spender;
     entity.value = event.params.value;
-
     entity.blockNumber = event.block.number;
     entity.blockTimestamp = event.block.timestamp;
     entity.transactionHash = event.transaction.hash;
-
     entity.save();
 }
 
@@ -170,11 +199,9 @@ export function handleDelegateChanged(event: DelegateChangedEvent): void {
     entity.delegator = event.params.delegator;
     entity.fromDelegate = event.params.fromDelegate;
     entity.toDelegate = event.params.toDelegate;
-
     entity.blockNumber = event.block.number;
     entity.blockTimestamp = event.block.timestamp;
     entity.transactionHash = event.transaction.hash;
-
     entity.save();
 }
 
@@ -187,11 +214,9 @@ export function handleDelegateVotesChanged(
     entity.delegate = event.params.delegate;
     entity.previousVotes = event.params.previousVotes;
     entity.newVotes = event.params.newVotes;
-
     entity.blockNumber = event.block.number;
     entity.blockTimestamp = event.block.timestamp;
     entity.transactionHash = event.transaction.hash;
-
     entity.save();
 }
 
@@ -201,11 +226,9 @@ export function handleEIP712DomainChanged(
     let entity = new EIP712DomainChanged(
         event.transaction.hash.concatI32(event.logIndex.toI32())
     );
-
     entity.blockNumber = event.block.number;
     entity.blockTimestamp = event.block.timestamp;
     entity.transactionHash = event.transaction.hash;
-
     entity.save();
 }
 
@@ -213,11 +236,9 @@ export function handleMintBlocked(event: MintBlockedEvent): void {
     let entity = new MintBlocked(
         event.transaction.hash.concatI32(event.logIndex.toI32())
     );
-
     entity.blockNumber = event.block.number;
     entity.blockTimestamp = event.block.timestamp;
     entity.transactionHash = event.transaction.hash;
-
     entity.save();
 }
 
@@ -229,11 +250,9 @@ export function handleOwnershipTransferStarted(
     );
     entity.previousOwner = event.params.previousOwner;
     entity.newOwner = event.params.newOwner;
-
     entity.blockNumber = event.block.number;
     entity.blockTimestamp = event.block.timestamp;
     entity.transactionHash = event.transaction.hash;
-
     entity.save();
 }
 
@@ -245,11 +264,9 @@ export function handleOwnershipTransferred(
     );
     entity.previousOwner = event.params.previousOwner;
     entity.newOwner = event.params.newOwner;
-
     entity.blockNumber = event.block.number;
     entity.blockTimestamp = event.block.timestamp;
     entity.transactionHash = event.transaction.hash;
-
     entity.save();
 }
 
@@ -260,15 +277,26 @@ export function handleTransfer(event: TransferEvent): void {
     let fromBalance = getOrCreateAccountBalance(fromAccount, token);
     let toBalance = getOrCreateAccountBalance(toAccount, token);
 
+    // Check balances before updating them
+    let fromHadBalance = !fromBalance.amount.equals(ZERO_BI);
+    let toHadBalance = !toBalance.amount.equals(ZERO_BI);
+
     // Update token stats
     token.transferCount = token.transferCount.plus(ONE_BI);
-    if (event.params.from.toHexString() == ZERO_ADDRESS) {
+
+    // Handle mints and burns
+    let isMint = event.params.from.toHexString() == ZERO_ADDRESS;
+    let isBurn = event.params.to.toHexString() == ZERO_ADDRESS;
+
+    if (isMint) {
         token.mintCount = token.mintCount.plus(ONE_BI);
         token.totalMinted = token.totalMinted.plus(event.params.value);
+        token.totalSupply = token.totalSupply.plus(event.params.value);
     }
-    if (event.params.to.toHexString() == ZERO_ADDRESS) {
+    if (isBurn) {
         token.burnCount = token.burnCount.plus(ONE_BI);
         token.totalBurned = token.totalBurned.plus(event.params.value);
+        token.totalSupply = token.totalSupply.minus(event.params.value);
     }
 
     // Update balances
@@ -278,23 +306,20 @@ export function handleTransfer(event: TransferEvent): void {
     toBalance.blockNumber = event.block.number;
 
     // Update holder counts
-    if (fromBalance.amount.equals(ZERO_BI)) {
+    if (fromBalance.amount.equals(ZERO_BI) && fromHadBalance) {
         token.currentHolderCount = token.currentHolderCount.minus(ONE_BI);
     }
-    if (toBalance.amount.equals(event.params.value)) {
+    if (!toBalance.amount.equals(ZERO_BI) && !toHadBalance) {
         token.currentHolderCount = token.currentHolderCount.plus(ONE_BI);
         token.cumulativeHolderCount = token.cumulativeHolderCount.plus(ONE_BI);
     }
 
-    // Create transfer event
-    let transferEvent = new TransferEventEntity(
-        token.id +
-            "-" +
-            event.transaction.hash.toHexString() +
-            "-" +
-            event.logIndex.toString()
+    // Create transfer event with unique ID
+    let transferEventId = event.transaction.hash.concatI32(
+        event.logIndex.toI32()
     );
-    transferEvent.hash = event.transaction.hash.toHexString();
+    let transferEvent = new TransferEventEntity(transferEventId);
+    transferEvent.hash = event.transaction.hash;
     transferEvent.logIndex = event.logIndex.toI32();
     transferEvent.token = token.id;
     transferEvent.nonce = event.transaction.nonce;
@@ -312,6 +337,13 @@ export function handleTransfer(event: TransferEvent): void {
     toBalance.save();
     transferEvent.save();
 
-    // Update daily snapshot
-    updateDailySnapshot(token, event.block.number, event.block.timestamp);
+    // Update daily snapshot with event details
+    updateDailySnapshot(
+        token,
+        event.block.number,
+        event.block.timestamp,
+        isMint,
+        isBurn,
+        event.params.value
+    );
 }

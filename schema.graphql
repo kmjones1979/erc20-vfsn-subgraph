@@ -7,7 +7,7 @@
 
 type Token @entity {
     " Smart contract address of the token "
-    id: ID!
+    id: Bytes!
 
     " Name of the token, mirrored from the smart contract "
     name: String!
@@ -60,7 +60,7 @@ type Token @entity {
 
 type TokenDailySnapshot @entity {
     " { Token Address }-{ # of days since Unix epoch time } "
-    id: ID!
+    id: Bytes!
 
     " Token this snapshot is associated with "
     token: Token!
@@ -108,10 +108,10 @@ type TokenDailySnapshot @entity {
 
 interface Event {
     " { Token ID }-{ Transaction hash }-{ Log index } "
-    id: ID!
+    id: Bytes!
 
     " Transaction hash of the transaction that emitted this event "
-    hash: String!
+    hash: Bytes!
 
     " Event log index. For transactions that don't emit event, create arbitrary index starting from 0 "
     logIndex: Int!
@@ -137,10 +137,10 @@ interface Event {
 
 type TransferEvent implements Event @entity {
     " { Token ID }-{ Transaction hash }-{ Log index } "
-    id: ID!
+    id: Bytes!
 
     " Transaction hash of the transaction that emitted this event "
-    hash: String!
+    hash: Bytes!
 
     " Event log index. For transactions that don't emit event, create arbitrary index starting from 0 "
     logIndex: Int!
@@ -174,7 +174,7 @@ type TransferEvent implements Event @entity {
 # An account is a unique Ethereum address
 type Account @entity {
     " Address of the account "
-    id: ID!
+    id: Bytes!
 
     " Token transfers to this account "
     transferTo: [TransferEvent!]! @derivedFrom(field: "to")
@@ -188,7 +188,7 @@ type Account @entity {
 
 type AccountBalance @entity {
     " { Address Of the Account }-{ Address of the Token }"
-    id: ID!
+    id: Bytes!
 
     " Account address "
     account: Account!
