@@ -252,7 +252,17 @@ function getOrCreateToken(address: Address): Token {
     let token = Token.load(address);
     if (token === null) {
         token = new Token(address);
-        // Initialize token fields
+        token.name = "dFusion";
+        token.symbol = "VFSN";
+        token.decimals = 18;
+        token.currentHolderCount = ZERO_BI;
+        token.cumulativeHolderCount = ZERO_BI;
+        token.transferCount = ZERO_BI;
+        token.mintCount = ZERO_BI;
+        token.burnCount = ZERO_BI;
+        token.totalSupply = ZERO_BI;
+        token.totalBurned = ZERO_BI;
+        token.totalMinted = ZERO_BI;
     }
     return token;
 }
@@ -271,13 +281,14 @@ function getOrCreateAccountBalance(
     account: Account,
     token: Token
 ): AccountBalance {
-    let balanceId = Bytes.fromUTF8(
-        account.id.toHexString() + "-" + token.id.toHexString()
-    );
+    let balanceId = account.id.concat(token.id);
     let balance = AccountBalance.load(balanceId);
     if (balance === null) {
         balance = new AccountBalance(balanceId);
-        // Initialize balance fields
+        balance.account = account.id;
+        balance.token = token.id;
+        balance.amount = ZERO_BI;
+        balance.blockNumber = ZERO_BI;
     }
     return balance;
 }
@@ -292,11 +303,49 @@ function updateDailySnapshot(
     transferAmount: BigInt
 ): void {
     let dayID = timestamp.toI32() / 86400;
-    let snapshotId = Bytes.fromUTF8(
-        token.id.toHexString() + "-" + dayID.toString()
-    );
+    let snapshotId = token.id.concat(Bytes.fromI32(dayID));
     let snapshot = TokenDailySnapshot.load(snapshotId);
-    // Update snapshot fields
+
+    if (snapshot === null) {
+        snapshot = new TokenDailySnapshot(snapshotId);
+        snapshot.token = token.id;
+        snapshot.dailyTotalSupply = token.totalSupply;
+        snapshot.currentHolderCount = token.currentHolderCount;
+        snapshot.cumulativeHolderCount = token.cumulativeHolderCount;
+        snapshot.dailyEventCount = 0;
+        snapshot.dailyTransferCount = 0;
+        snapshot.dailyTransferAmount = ZERO_BI;
+        snapshot.dailyMintCount = 0;
+        snapshot.dailyMintAmount = ZERO_BI;
+        snapshot.dailyBurnCount = 0;
+        snapshot.dailyBurnAmount = ZERO_BI;
+    }
+
+    // Update daily counts and amounts
+    snapshot.dailyEventCount += 1;
+    snapshot.dailyTransferCount += 1;
+    snapshot.dailyTransferAmount =
+        snapshot.dailyTransferAmount.plus(transferAmount);
+
+    if (isMint) {
+        snapshot.dailyMintCount += 1;
+        snapshot.dailyMintAmount =
+            snapshot.dailyMintAmount.plus(transferAmount);
+    }
+    if (isBurn) {
+        snapshot.dailyBurnCount += 1;
+        snapshot.dailyBurnAmount =
+            snapshot.dailyBurnAmount.plus(transferAmount);
+    }
+
+    // Always update current values
+    snapshot.dailyTotalSupply = token.totalSupply;
+    snapshot.currentHolderCount = token.currentHolderCount;
+    snapshot.cumulativeHolderCount = token.cumulativeHolderCount;
+
+    snapshot.blockNumber = blockNumber;
+    snapshot.timestamp = timestamp;
+    snapshot.save();
 }
 ```
 
@@ -324,6 +373,8 @@ The mapping file includes handlers for all token events:
 4. Enhanced daily snapshot updates with proper value capture
 5. Fixed balance tracking for mints and burns
 6. Updated transfer event ID generation to use transaction hash and log index
+7. Optimized ID generation for account balances and daily snapshots
+8. Fixed daily total supply tracking in snapshots
 
 ## Development
 
