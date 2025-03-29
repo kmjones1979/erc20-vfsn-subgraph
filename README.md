@@ -57,8 +57,8 @@ An example deployment of this subgraph along with a GraphQL playground can be fo
 
 ```graphql
 {
-    token(id: "0x0CC1Bc0131DD9782e65ca0319Cd3a60eBA3a932d") {
-        dailyTokenSnapshots(
+    tokens {
+        dailyTokenSnapshot(
             first: 30
             orderBy: timestamp
             orderDirection: desc
@@ -105,7 +105,7 @@ An example deployment of this subgraph along with a GraphQL playground can be fo
 
 ```graphql
 {
-    account(id: "0x...") {
+    accounts(first: 10) {
         transferTo {
             amount
             timestamp
@@ -121,6 +121,7 @@ An example deployment of this subgraph along with a GraphQL playground can be fo
                 name
                 symbol
             }
+            id
         }
     }
 }
