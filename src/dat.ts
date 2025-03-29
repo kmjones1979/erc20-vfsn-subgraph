@@ -69,9 +69,7 @@ function getOrCreateAccountBalance(
     account: Account,
     token: Token
 ): AccountBalance {
-    let balanceId = Bytes.fromUTF8(
-        account.id.toHexString() + "-" + token.id.toHexString()
-    );
+    let balanceId = account.id.concat(Bytes.fromUTF8("-")).concat(token.id);
     let balance = AccountBalance.load(balanceId);
     if (balance === null) {
         balance = new AccountBalance(balanceId);
