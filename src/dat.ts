@@ -96,17 +96,13 @@ function updateDailySnapshot(
     );
     let snapshot = TokenDailySnapshot.load(snapshotId);
 
-    // Capture current values before any updates
-    let currentTotalSupply = token.totalSupply;
-    let currentHolderCount = token.currentHolderCount;
-    let currentCumulativeHolderCount = token.cumulativeHolderCount;
-
+    // Always create a new snapshot if it doesn't exist
     if (snapshot === null) {
         snapshot = new TokenDailySnapshot(snapshotId);
         snapshot.token = token.id;
-        snapshot.dailyTotalSupply = currentTotalSupply;
-        snapshot.currentHolderCount = currentHolderCount;
-        snapshot.cumulativeHolderCount = currentCumulativeHolderCount;
+        snapshot.dailyTotalSupply = token.totalSupply;
+        snapshot.currentHolderCount = token.currentHolderCount;
+        snapshot.cumulativeHolderCount = token.cumulativeHolderCount;
         snapshot.dailyEventCount = 0;
         snapshot.dailyTransferCount = 0;
         snapshot.dailyTransferAmount = ZERO_BI;
@@ -133,10 +129,10 @@ function updateDailySnapshot(
             snapshot.dailyBurnAmount.plus(transferAmount);
     }
 
-    // Update current values with captured values
-    snapshot.dailyTotalSupply = currentTotalSupply;
-    snapshot.currentHolderCount = currentHolderCount;
-    snapshot.cumulativeHolderCount = currentCumulativeHolderCount;
+    // Always update current values
+    snapshot.dailyTotalSupply = token.totalSupply;
+    snapshot.currentHolderCount = token.currentHolderCount;
+    snapshot.cumulativeHolderCount = token.cumulativeHolderCount;
 
     snapshot.blockNumber = blockNumber;
     snapshot.timestamp = timestamp;
